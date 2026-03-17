@@ -1,0 +1,19 @@
+{
+  "id": "wealthfolio-compare",
+  "name": "wealthfolio-compare",
+  "version": "1.0.0",
+  "description": "A wealthfolio addon that allows you to compare your wealth to different metrics",
+  "author": "Cloudburst",
+  "main": "dist/addon.js",
+  "sdkVersion": "1.0.0",
+  "enabled": true,
+  "permissions": [
+    {
+      "category": "ui",
+      "functions": ["sidebar.addItem"],
+      "purpose": "Add navigation items to the sidebar"
+    }
+  ],
+  "keywords": ["wealthfolio", "addon"],
+  "license": "MIT"
+}
