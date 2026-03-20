@@ -278,6 +278,48 @@ export function getLatestValue(points: YearPoint[]): number | null {
   return points[points.length - 1]?.value ?? null;
 }
 
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+/**
+ * Returns the percentage of the current year that has elapsed (0-1).
+ * For non-current years, returns null.
+ */
+function getCurrentYearPercentageElapsed(): number | null {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const startOfYear = new Date(currentYear, 0, 1);
+  const daysElapsed = Math.max(1, (today.getTime() - startOfYear.getTime()) / 86_400_000);
+  const daysInYear = isLeapYear(currentYear) ? 366 : 365;
+  return daysElapsed / daysInYear;
+}
+
+/**
+ * Adjusts a WID value for the current partial year by multiplying by the year percentage elapsed.
+ * This is used when the value is an extrapolated end-of-year projection that needs to be
+ * scaled to the current date (assuming linear progression through the year).
+ */
+export function getLatestValueAdjustedForCurrentYear(points: YearPoint[]): number | null {
+  if (points.length === 0) {
+    return null;
+  }
+  const latestPoint = points[points.length - 1];
+  if (!latestPoint) {
+    return null;
+  }
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  if (latestPoint.year !== currentYear) {
+    return latestPoint.value;
+  }
+  const yearPercentageElapsed = getCurrentYearPercentageElapsed();
+  if (yearPercentageElapsed === null) {
+    return latestPoint.value;
+  }
+  return latestPoint.value * yearPercentageElapsed;
+}
+
 function locateBinInList(
   bins: WidPercentileBin[],
   dataset: WidDataset,

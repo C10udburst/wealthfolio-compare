@@ -9,7 +9,7 @@ import type {
   WealthChartRow,
   YearPoint,
 } from '../types/compare';
-import { getLatestValue } from './wid';
+import { getLatestValue, getLatestValueAdjustedForCurrentYear } from './wid';
 
 export function estimatePercentile(amount: number, avgAmount: number | null): number | null {
   if (!Number.isFinite(amount) || !avgAmount || avgAmount <= 0) {
@@ -292,9 +292,9 @@ export function buildComparisonAnalysis(
   latestPortfolioValue: number | null,
 ): ComparisonAnalysis {
   const benchmarkSeries = benchmarkBin ? dataset?.seriesByVariable[benchmarkBin.variable]?.points ?? [] : [];
-  const benchmarkWealthLatest = getLatestValue(benchmarkSeries);
-  const averageWealthLatest = getLatestValue(dataset?.seriesByVariable.ahweal_p50p60_999_j?.points ?? []);
-  const countryAverageIncomeLatest = getLatestValue(dataset?.seriesByVariable.aptinc_p0p100_999_j?.points ?? []);
+  const benchmarkWealthLatest = getLatestValueAdjustedForCurrentYear(benchmarkSeries);
+  const averageWealthLatest = getLatestValueAdjustedForCurrentYear(dataset?.seriesByVariable.ahweal_p50p60_999_j?.points ?? []);
+  const countryAverageIncomeLatest = getLatestValueAdjustedForCurrentYear(dataset?.seriesByVariable.aptinc_p0p100_999_j?.points ?? []);
 
   const benchmarkGapValue =
     latestPortfolioValue !== null && benchmarkWealthLatest !== null
