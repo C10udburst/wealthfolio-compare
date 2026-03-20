@@ -1,6 +1,6 @@
 import type { IncomeSummary } from '@wealthfolio/addon-sdk';
 
-export type ViewTab = 'wealth' | 'income' | 'real-nominal' | 'percentile-history';
+export type ViewTab = 'wealth' | 'income' | 'real-nominal' | 'percentile-history' | 'inflation-adjusted';
 
 export type TimeSpanOption = {
   label: '1Y' | '3Y' | '5Y' | '10Y';
@@ -31,7 +31,8 @@ export type WidVariable =
   | `ahweqi_p${number}p${number}_999_i`
   | `ahwcud_p${number}p${number}_999_j`
   | `ahwbol_p${number}p${number}_999_j`
-  | `ahweqi_p${number}p${number}_999_j`;
+  | `ahweqi_p${number}p${number}_999_j`
+  | `inyixx_p0p100_999_i`;
 
 export type WidPercentileBin = {
   variable: WidVariable;
@@ -100,6 +101,13 @@ export type GrowthRow = {
 export type PercentileHistoryRow = {
   year: number;
   percentile: number | null;
+};
+
+export type InflationAdjustedRow = {
+  year: number;
+  nominalWealth: number | null;
+  inflationAdjustedWealth: number | null;
+  priceIndex: number | null;
 };
 
 export type ComparisonAnalysis = {

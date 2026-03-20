@@ -1,6 +1,7 @@
 import type {
   ComparisonAnalysis,
   IncomeChartRow,
+  InflationAdjustedRow,
   PercentileHistoryRow,
   RealNominalRow,
   WidDataset,
@@ -321,4 +322,37 @@ export function getSeriesForVariable(dataset: WidDataset | null, variable: keyof
     return [];
   }
   return dataset.seriesByVariable[variable]?.points ?? [];
+}
+
+export function buildInflationAdjustedWealthData(
+  adjustedPortfolioSeries: YearPoint[],
+  priceIndexSeries: YearPoint[],
+): InflationAdjustedRow[] {
+  const years = new Set<number>();
+  adjustedPortfolioSeries.forEach((row) => years.add(row.year));
+  priceIndexSeries.forEach((row) => years.add(row.year));
+
+  const portfolioByYear = mapByYear(adjustedPortfolioSeries);
+  const priceIndexByYear = mapByYear(priceIndexSeries);
+
+  return [...years]
+    .sort((a, b) => a - b)
+    .map((year) => {
+      const nominalWealth = portfolioByYear.get(year) ?? null;
+      const priceIndex = priceIndexByYear.get(year) ?? null;
+
+      let inflationAdjustedWealth: number | null = null;
+      if (nominalWealth !== null && priceIndex !== null && priceIndex > 0) {
+        // Adjusting wealth to 2024 dollars (assuming price index of 1.0 = 2024)
+        // inflationAdjustedWealth = nominalWealth / priceIndex
+        inflationAdjustedWealth = nominalWealth / priceIndex;
+      }
+
+      return {
+        year,
+        nominalWealth,
+        inflationAdjustedWealth,
+        priceIndex,
+      };
+    });
 }

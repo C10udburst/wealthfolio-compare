@@ -11,6 +11,7 @@ import {
   buildAnnualIncomeSeries,
   buildAssetsCompositionData,
   buildComparisonAnalysis,
+  buildInflationAdjustedWealthData,
   buildPercentileHistoryData,
   buildIncomeChartData,
   buildWealthChartData,
@@ -178,6 +179,13 @@ export function CompareDashboardPage({ ctx }: { ctx: AddonContext }) {
     [widDataset, adjustedPortfolioSeries],
   );
 
+  const priceIndexSeries = getSeriesForVariable(widDataset, 'inyixx_p0p100_999_i');
+
+  const inflationAdjustedData = useMemo(
+    () => buildInflationAdjustedWealthData(adjustedPortfolioSeries, priceIndexSeries),
+    [adjustedPortfolioSeries, priceIndexSeries],
+  );
+
   const benchmarkLabel = benchmarkBin?.label ?? 'N/A';
   const lowerBenchmarkLabel = lowerBin?.label ?? 'N/A';
   const upperBenchmarkLabel = upperBin?.label ?? 'N/A';
@@ -244,6 +252,7 @@ export function CompareDashboardPage({ ctx }: { ctx: AddonContext }) {
         incomeChartData={incomeChartData}
         realNominalData={realNominalData}
         percentileHistoryData={percentileHistoryData}
+        inflationAdjustedData={inflationAdjustedData}
       />
     </div>
   );

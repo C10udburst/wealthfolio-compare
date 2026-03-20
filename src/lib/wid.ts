@@ -69,6 +69,7 @@ export const WID_REQUIRED_VARIABLES: WidVariable[] = [
   'ahwcud_p0p100_999_i',
   'ahwbol_p0p100_999_i',
   'ahweqi_p0p100_999_i',
+  'inyixx_p0p100_999_i',
 ];
 
 type WidApiValueRow = { y?: unknown; v?: unknown };

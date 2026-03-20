@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from '@wealthfolio/ui';
 import { CartesianGrid, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from '@wealthfolio/ui/chart';
 import type { ChartConfig } from '@wealthfolio/ui/chart';
-import type { IncomeChartRow, PercentileHistoryRow, RealNominalRow, ViewTab, WealthChartRow } from '../types/compare';
+import type { InflationAdjustedRow, IncomeChartRow, PercentileHistoryRow, RealNominalRow, ViewTab, WealthChartRow } from '../types/compare';
 
 type Props = {
   activeTab: ViewTab;
@@ -19,6 +19,7 @@ type Props = {
   incomeChartData: IncomeChartRow[];
   realNominalData: RealNominalRow[];
   percentileHistoryData: PercentileHistoryRow[];
+  inflationAdjustedData: InflationAdjustedRow[];
 };
 
 export function ComparisonTabsCard({
@@ -36,6 +37,7 @@ export function ComparisonTabsCard({
   incomeChartData,
   realNominalData,
   percentileHistoryData,
+  inflationAdjustedData,
 }: Props) {
   const chartConfig: ChartConfig = {
     portfolio: { label: 'Portfolio (Adjusted)', color: '#2a9d8f' },
@@ -52,6 +54,8 @@ export function ComparisonTabsCard({
     equities: { label: 'Equities', color: '#2a9d8f' },
     portfolioGrowth: { label: 'Portfolio Growth', color: '#264653' },
     percentile: { label: 'Historical Percentile', color: '#264653' },
+    nominalWealth: { label: 'Nominal Wealth', color: '#e76f51' },
+    inflationAdjustedWealth: { label: 'Inflation-Adjusted Wealth (2024 dollars)', color: '#2a9d8f' },
   };
 
   return (
@@ -69,6 +73,7 @@ export function ComparisonTabsCard({
             <TabsTrigger value="income">Income %</TabsTrigger>
             <TabsTrigger value="real-nominal">Asset Mix</TabsTrigger>
             <TabsTrigger value="percentile-history">Percentile History</TabsTrigger>
+            <TabsTrigger value="inflation-adjusted">Real Wealth</TabsTrigger>
           </TabsList>
 
           <TabsContent value="wealth" className="mt-4">
@@ -136,6 +141,22 @@ export function ComparisonTabsCard({
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <ChartLegend content={<ChartLegendContent />} />
                   <Line type="monotone" dataKey="percentile" stroke="var(--color-percentile)" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </TabsContent>
+
+          <TabsContent value="inflation-adjusted" className="mt-4">
+            <ChartContainer className="h-[360px] w-full" config={chartConfig}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={inflationAdjustedData}>
+                  <CartesianGrid vertical={false} strokeDasharray="4 4" />
+                  <XAxis dataKey="year" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Line type="monotone" dataKey="nominalWealth" stroke="var(--color-nominalWealth)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="inflationAdjustedWealth" stroke="var(--color-inflationAdjustedWealth)" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </ChartContainer>
