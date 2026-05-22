@@ -9,7 +9,7 @@ import { formatPercent } from '../lib/format';
 import {
   adjustedSeries,
   buildAnnualIncomeSeries,
-  buildAssetsCompositionData,
+  buildAssetMixData,
   buildComparisonAnalysis,
   buildInflationAdjustedWealthData,
   buildPercentileHistoryData,
@@ -22,7 +22,7 @@ import { toYearlyLast } from '../lib/portfolio';
 import { TIME_SPANS } from '../lib/constants';
 import { getDefaultCountry, getLatestValue, getNeighborBins, getNeighborIncomeBins, locateFineIncomeBinByValue, locateFineWealthBinByValue, locateIncomePercentileBinByValue, locateWealthPercentileBinByValue } from '../lib/wid';
 import { TOTAL_ACCOUNT_ID } from '../hooks/useCompareData';
-import type { TimeSpanOption, ViewTab, WidVariable } from '../types/compare';
+import type { AssetMixMode, TimeSpanOption, ViewTab, WidVariable } from '../types/compare';
 
 export function CompareDashboardPage({ ctx }: { ctx: AddonContext }) {
   const [selectedCountry, setSelectedCountry] = useState<string>(() => localStorage.getItem('wfc_country') ?? getDefaultCountry());
@@ -30,8 +30,9 @@ export function CompareDashboardPage({ ctx }: { ctx: AddonContext }) {
   const [householdSize, setHouseholdSize] = useState<number>(1);
   const [timeSpan, setTimeSpan] = useState<TimeSpanOption>(TIME_SPANS[2]);
   const [activeTab, setActiveTab] = useState<ViewTab>('wealth');
+  const [assetMixMode, setAssetMixMode] = useState<AssetMixMode>('percentage');
 
-  const { loading, error, baseCurrency, accountOptions, portfolioPoints, widDataset } = useCompareData(
+  const { loading, error, baseCurrency, accountOptions, portfolioPoints, widDataset, userAssetVars } = useCompareData(
     ctx,
     selectedCountry,
     timeSpan.years,
@@ -140,6 +141,7 @@ export function CompareDashboardPage({ ctx }: { ctx: AddonContext }) {
       const byI = getSeriesForVariable(widDataset, `${prefix}_p${bin.from}p${bin.to}_999_i` as WidVariable);
       if (byI.length > 0) return byI;
     }
+    // Fallback to national average (p0-p100)
     return getSeriesForVariable(widDataset, `${prefix}_p0p100_999_i` as WidVariable);
   }
 
@@ -169,9 +171,17 @@ export function CompareDashboardPage({ ctx }: { ctx: AddonContext }) {
     [annualIncomeSeries, incomeBenchmarkSeries, lowerIncomeBenchmarkSeries, upperIncomeBenchmarkSeries, countryAverageIncomeSeries],
   );
 
-  const realNominalData = useMemo(
-    () => buildAssetsCompositionData(depositsSeries, bondsLoansSeries, equitiesSeries),
-    [depositsSeries, bondsLoansSeries, equitiesSeries],
+  const medianAssetVars = useMemo(() => {
+    return {
+      deposits: getLatestValue(depositsSeries) ?? 0,
+      bondsLoans: getLatestValue(bondsLoansSeries) ?? 0,
+      equities: getLatestValue(equitiesSeries) ?? 0,
+    };
+  }, [depositsSeries, bondsLoansSeries, equitiesSeries]);
+
+  const assetMixData = useMemo(
+    () => buildAssetMixData(userAssetVars, medianAssetVars),
+    [userAssetVars, medianAssetVars],
   );
 
   const percentileHistoryData = useMemo(
@@ -242,15 +252,19 @@ export function CompareDashboardPage({ ctx }: { ctx: AddonContext }) {
         onTabChange={setActiveTab}
         loading={loading}
         selectedCountry={selectedCountry}
+        baseCurrency={baseCurrency}
+        assetMixMode={assetMixMode}
+        onAssetMixModeChange={setAssetMixMode}
         benchmarkLabel={benchmarkLabel}
         lowerBenchmarkLabel={lowerBenchmarkLabel}
         upperBenchmarkLabel={upperBenchmarkLabel}
+        incomePercentileLabel={fineIncomeBin?.label ?? incomeBenchmarkBin?.label ?? 'N/A'}
         incomeBenchmarkLabel={incomeBenchmarkLabel}
         lowerIncomeBenchmarkLabel={lowerIncomeBenchmarkLabel}
         upperIncomeBenchmarkLabel={upperIncomeBenchmarkLabel}
         wealthChartData={wealthChartData}
         incomeChartData={incomeChartData}
-        realNominalData={realNominalData}
+        assetMixData={assetMixData}
         percentileHistoryData={percentileHistoryData}
         inflationAdjustedData={inflationAdjustedData}
       />

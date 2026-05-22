@@ -1,6 +1,6 @@
 import type { IncomeSummary } from '@wealthfolio/addon-sdk';
 
-export type ViewTab = 'wealth' | 'income' | 'real-nominal' | 'percentile-history' | 'inflation-adjusted';
+export type ViewTab = 'wealth' | 'income' | 'asset-mix' | 'percentile-history' | 'inflation-adjusted';
 
 export type TimeSpanOption = {
   label: '1Y' | '3Y' | '5Y' | '10Y';
@@ -83,11 +83,15 @@ export type IncomeChartRow = {
   countryAverage: number | null;
 };
 
-export type RealNominalRow = {
-  year: number;
-  deposits: number | null;
-  bondsLoans: number | null;
-  equities: number | null;
+export type AssetMixMode = 'percentage' | 'currency';
+
+export type AssetMixRow = {
+  subject: string;
+  user: number;
+  median: number;
+  fullMark: number;
+  userValue?: number;
+  medianValue?: number;
 };
 
 export type GrowthRow = {
@@ -128,4 +132,5 @@ export type CompareDataState = {
   incomeSummary: IncomeSummary[];
   widDataset: WidDataset | null;
   statusEntries: StatusEntry[];
+  userAssetVars: { deposits: number; bondsLoans: number; equities: number };
 };

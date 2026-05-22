@@ -1,9 +1,10 @@
 import type {
   ComparisonAnalysis,
+  GrowthRow,
   IncomeChartRow,
+  AssetMixRow,
   InflationAdjustedRow,
   PercentileHistoryRow,
-  RealNominalRow,
   WidDataset,
   WidPercentileBin,
   WidSeries,
@@ -11,6 +12,53 @@ import type {
   YearPoint,
 } from '../types/compare';
 import { getLatestValue, getLatestValueAdjustedForCurrentYear } from './wid';
+
+export function buildAssetMixData(
+  userHoldings: { deposits: number; bondsLoans: number; equities: number },
+  medianAssetVars: { deposits: number; bondsLoans: number; equities: number },
+): AssetMixRow[] {
+  const userTotal = userHoldings.deposits + userHoldings.bondsLoans + userHoldings.equities;
+  const medianTotal = medianAssetVars.deposits + medianAssetVars.bondsLoans + medianAssetVars.equities;
+
+  const userMix = {
+    deposits: userTotal > 0 ? (userHoldings.deposits / userTotal) * 100 : 0,
+    bondsLoans: userTotal > 0 ? (userHoldings.bondsLoans / userTotal) * 100 : 0,
+    equities: userTotal > 0 ? (userHoldings.equities / userTotal) * 100 : 0,
+  };
+
+  const medianMix = {
+    deposits: medianTotal > 0 ? (medianAssetVars.deposits / medianTotal) * 100 : 0,
+    bondsLoans: medianTotal > 0 ? (medianAssetVars.bondsLoans / medianTotal) * 100 : 0,
+    equities: medianTotal > 0 ? (medianAssetVars.equities / medianTotal) * 100 : 0,
+  };
+
+  return [
+    {
+      subject: 'Currency & Deposits',
+      user: userMix.deposits,
+      median: medianMix.deposits,
+      userValue: userHoldings.deposits,
+      medianValue: medianAssetVars.deposits,
+      fullMark: 100,
+    },
+    {
+      subject: 'Bonds & Loans',
+      user: userMix.bondsLoans,
+      median: medianMix.bondsLoans,
+      userValue: userHoldings.bondsLoans,
+      medianValue: medianAssetVars.bondsLoans,
+      fullMark: 100,
+    },
+    {
+      subject: 'Equities',
+      user: userMix.equities,
+      median: medianMix.equities,
+      userValue: userHoldings.equities,
+      medianValue: medianAssetVars.equities,
+      fullMark: 100,
+    },
+  ];
+}
 
 export function estimatePercentile(amount: number, avgAmount: number | null): number | null {
   if (!Number.isFinite(amount) || !avgAmount || avgAmount <= 0) {
@@ -128,81 +176,6 @@ export function buildIncomeChartData(
       upperIncomeBenchmarkPercentile: upperByYear.get(year) ?? null,
       countryAverage: averageByYear.get(year) ?? null,
     }));
-}
-
-export function buildAssetsCompositionData(
-  depositsSeries: YearPoint[],
-  bondsLoansSeries: YearPoint[],
-  equitiesSeries: YearPoint[],
-): RealNominalRow[] {
-  const years = new Set<number>();
-  depositsSeries.forEach((row) => years.add(row.year));
-  bondsLoansSeries.forEach((row) => years.add(row.year));
-  equitiesSeries.forEach((row) => years.add(row.year));
-
-  const depositsByYear = mapByYear(depositsSeries);
-  const bondsLoansByYear = mapByYear(bondsLoansSeries);
-  const equitiesByYear = mapByYear(equitiesSeries);
-
-  return [...years]
-    .sort((a, b) => a - b)
-    .map((year) => ({
-      year,
-      deposits: depositsByYear.get(year) ?? null,
-      bondsLoans: bondsLoansByYear.get(year) ?? null,
-      equities: equitiesByYear.get(year) ?? null,
-    }));
-}
-
-function computeGrowth(current: number | undefined, previous: number | undefined): number | null {
-  if (current === undefined || previous === undefined || previous === 0) {
-    return null;
-  }
-  return ((current - previous) / previous) * 100;
-}
-
-export function buildDualGrowthData(
-  portfolioSeries: YearPoint[],
-  benchmarkSeries: YearPoint[],
-  lowerBenchmarkSeries: YearPoint[],
-  upperBenchmarkSeries: YearPoint[],
-): GrowthRow[] {
-  const years = new Set<number>();
-  portfolioSeries.forEach((row) => years.add(row.year));
-  benchmarkSeries.forEach((row) => years.add(row.year));
-  lowerBenchmarkSeries.forEach((row) => years.add(row.year));
-  upperBenchmarkSeries.forEach((row) => years.add(row.year));
-
-  const portfolioByYear = mapByYear(portfolioSeries);
-  const benchmarkByYear = mapByYear(benchmarkSeries);
-  const lowerBenchmarkByYear = mapByYear(lowerBenchmarkSeries);
-  const upperBenchmarkByYear = mapByYear(upperBenchmarkSeries);
-
-  const rows: GrowthRow[] = [];
-  const sortedYears = [...years].sort((a, b) => a - b);
-
-  for (let idx = 0; idx < sortedYears.length; idx += 1) {
-    const year = sortedYears[idx];
-    const prevYear = sortedYears[idx - 1];
-
-    const currentPortfolio = portfolioByYear.get(year);
-    const previousPortfolio = prevYear === undefined ? undefined : portfolioByYear.get(prevYear);
-    const currentBenchmark = benchmarkByYear.get(year);
-    const previousBenchmark = prevYear === undefined ? undefined : benchmarkByYear.get(prevYear);
-    const currentLowerBenchmark = lowerBenchmarkByYear.get(year);
-    const previousLowerBenchmark = prevYear === undefined ? undefined : lowerBenchmarkByYear.get(prevYear);
-    const currentUpperBenchmark = upperBenchmarkByYear.get(year);
-    const previousUpperBenchmark = prevYear === undefined ? undefined : upperBenchmarkByYear.get(prevYear);
-
-    const portfolioGrowth = computeGrowth(currentPortfolio, previousPortfolio);
-    const benchmarkGrowth = computeGrowth(currentBenchmark, previousBenchmark);
-    const lowerBenchmarkGrowth = computeGrowth(currentLowerBenchmark, previousLowerBenchmark);
-    const upperBenchmarkGrowth = computeGrowth(currentUpperBenchmark, previousUpperBenchmark);
-
-    rows.push({ year, portfolioGrowth, benchmarkGrowth, lowerBenchmarkGrowth, upperBenchmarkGrowth });
-  }
-
-  return rows;
 }
 
 function parsePercentileRange(variable: string): { from: number; to: number } | null {

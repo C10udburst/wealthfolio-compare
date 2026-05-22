@@ -1,13 +1,16 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from '@wealthfolio/ui';
-import { CartesianGrid, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from '@wealthfolio/ui/chart';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Label, Switch, Tabs, TabsContent, TabsList, TabsTrigger } from '@wealthfolio/ui';
+import { CartesianGrid, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, Line, LineChart, PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer, XAxis, YAxis } from '@wealthfolio/ui/chart';
 import type { ChartConfig } from '@wealthfolio/ui/chart';
-import type { InflationAdjustedRow, IncomeChartRow, PercentileHistoryRow, RealNominalRow, ViewTab, WealthChartRow } from '../types/compare';
+import type { AssetMixMode, AssetMixRow, InflationAdjustedRow, IncomeChartRow, PercentileHistoryRow, ViewTab, WealthChartRow } from '../types/compare';
 
 type Props = {
   activeTab: ViewTab;
   onTabChange: (tab: ViewTab) => void;
   loading: boolean;
   selectedCountry: string;
+  baseCurrency: string;
+  assetMixMode: AssetMixMode;
+  onAssetMixModeChange: (mode: AssetMixMode) => void;
   benchmarkLabel: string;
   lowerBenchmarkLabel: string;
   upperBenchmarkLabel: string;
@@ -17,7 +20,7 @@ type Props = {
   upperIncomeBenchmarkLabel: string;
   wealthChartData: WealthChartRow[];
   incomeChartData: IncomeChartRow[];
-  realNominalData: RealNominalRow[];
+  assetMixData: AssetMixRow[];
   percentileHistoryData: PercentileHistoryRow[];
   inflationAdjustedData: InflationAdjustedRow[];
 };
@@ -27,15 +30,19 @@ export function ComparisonTabsCard({
   onTabChange,
   loading,
   selectedCountry,
+  baseCurrency,
+  assetMixMode,
+  onAssetMixModeChange,
   benchmarkLabel,
   lowerBenchmarkLabel,
   upperBenchmarkLabel,
+  incomePercentileLabel,
   incomeBenchmarkLabel,
   lowerIncomeBenchmarkLabel,
   upperIncomeBenchmarkLabel,
   wealthChartData,
   incomeChartData,
-  realNominalData,
+  assetMixData,
   percentileHistoryData,
   inflationAdjustedData,
 }: Props) {
@@ -49,9 +56,10 @@ export function ComparisonTabsCard({
     lowerBenchmarkPercentile: { label: `Lower Bin (${lowerBenchmarkLabel})`, color: '#8ab17d' },
     upperBenchmarkPercentile: { label: `Upper Bin (${upperBenchmarkLabel})`, color: '#f4a261' },
     countryAverage: { label: `Country Avg (${selectedCountry})`, color: '#e76f51' },
-    deposits: { label: 'Currency & Deposits', color: '#264653' },
-    bondsLoans: { label: 'Bonds & Loans', color: '#e76f51' },
-    equities: { label: 'Equities', color: '#2a9d8f' },
+    user: { label: 'Your Asset Mix', color: '#2a9d8f' },
+    userValue: { label: 'Your Asset Mix', color: '#2a9d8f' },
+    median: { label: `Wealth Bin (${benchmarkLabel})`, color: '#264653' },
+    medianValue: { label: `Wealth Bin (${benchmarkLabel})`, color: '#264653' },
     portfolioGrowth: { label: 'Portfolio Growth', color: '#264653' },
     percentile: { label: 'Historical Percentile', color: '#264653' },
     nominalWealth: { label: 'Nominal Wealth', color: '#e76f51' },
@@ -71,7 +79,7 @@ export function ComparisonTabsCard({
           <TabsList className="h-auto flex flex-wrap gap-1 w-full overflow-visible">
             <TabsTrigger value="wealth">Wealth %</TabsTrigger>
             <TabsTrigger value="income">Income %</TabsTrigger>
-            <TabsTrigger value="real-nominal">Asset Mix</TabsTrigger>
+            <TabsTrigger value="asset-mix">Asset Mix</TabsTrigger>
             <TabsTrigger value="percentile-history">Percentile History</TabsTrigger>
             <TabsTrigger value="inflation-adjusted">Real Wealth</TabsTrigger>
           </TabsList>
@@ -114,19 +122,73 @@ export function ComparisonTabsCard({
             </ChartContainer>
           </TabsContent>
 
-          <TabsContent value="real-nominal" className="mt-4">
+          <TabsContent value="asset-mix" className="mt-4">
+            <div className="flex items-center justify-end space-x-2 mb-4 px-4">
+              <Label htmlFor="asset-mix-mode" className="text-sm">Currency values</Label>
+              <Switch
+                id="asset-mix-mode"
+                checked={assetMixMode === 'currency'}
+                onCheckedChange={(checked) => onAssetMixModeChange(checked ? 'currency' : 'percentage')}
+              />
+            </div>
             <ChartContainer className="h-[360px] w-full" config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={realNominalData}>
-                  <CartesianGrid vertical={false} strokeDasharray="4 4" />
-                  <XAxis dataKey="year" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                <RadarChart data={assetMixData}>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        hideLabel
+                        formatter={(value, name, item) => {
+                          const row = item.payload as AssetMixRow;
+                          const isUser = item.dataKey === 'user' || item.dataKey === 'userValue';
+                          const currencyValue = isUser ? row.userValue : row.medianValue;
+
+                          const formattedValue = (assetMixMode === 'currency' && currencyValue !== undefined)
+                            ? new Intl.NumberFormat(undefined, {
+                                style: 'currency',
+                                currency: baseCurrency,
+                                maximumFractionDigits: 0,
+                              }).format(currencyValue)
+                            : `${Number(value).toFixed(1)}%`;
+
+                          return (
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
+                                style={
+                                  {
+                                    "--color-bg": isUser ? "var(--color-user)" : "var(--color-median)",
+                                  } as React.CSSProperties
+                                }
+                              />
+                              <span className="font-medium text-foreground">{name}:</span>
+                              <span className="font-mono font-medium text-foreground">{formattedValue}</span>
+                            </div>
+                          );
+                        }}
+                      />
+                    }
+                  />
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="subject" />
+                  <Radar
+                    id="user"
+                    name="Your Asset Mix"
+                    dataKey={assetMixMode === 'currency' ? 'userValue' : 'user'}
+                    stroke="var(--color-user)"
+                    fill="var(--color-user)"
+                    fillOpacity={0.6}
+                  />
+                  <Radar
+                    id="median"
+                    name={`Wealth Bin (${benchmarkLabel})`}
+                    dataKey={assetMixMode === 'currency' ? 'medianValue' : 'median'}
+                    stroke="var(--color-median)"
+                    fill="var(--color-median)"
+                    fillOpacity={0.6}
+                  />
                   <ChartLegend content={<ChartLegendContent />} />
-                  <Line type="monotone" dataKey="deposits" stroke="var(--color-deposits)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="bondsLoans" stroke="var(--color-bondsLoans)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="equities" stroke="var(--color-equities)" strokeWidth={2} dot={false} />
-                </LineChart>
+                </RadarChart>
               </ResponsiveContainer>
             </ChartContainer>
           </TabsContent>
